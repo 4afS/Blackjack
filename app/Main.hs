@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Blackjack (blackjack)
 
 main :: IO ()
-main = someFunc
+main = blackjack
