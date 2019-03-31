@@ -6,18 +6,7 @@ import           Card
 import           Control.Applicative
 import           Control.Monad.Random.Class (MonadRandom)
 import           Control.Monad.State
-import           System.Random.Shuffle      (shuffleM)
-
-data Player
-  = Player { hand :: !Cards }
-  | Dealer { hand :: !Cards }
-  deriving (Show)
-
-type Dealer = Player
-
-type Cards = [Card]
-
-type Score = Int
+import           Player
 
 data YesOrNo
   = Yes
@@ -29,10 +18,6 @@ data Result
   | Draw
   | Lose
   deriving (Show)
-
--- | Shuffled 52 cards excluding Joker.
-genShuffledDeck :: MonadRandom m => m Cards
-genShuffledDeck = shuffleM . concat $ replicate 4 [Ace .. King]
 
 blackjack :: IO ()
 blackjack = do
@@ -46,7 +31,6 @@ blackjack = do
     printHands (Player pHand, Dealer dHand) = do
       putStrLn $ "Player's hand are " ++ show pHand
       putStrLn $ "Dealer's hand are " ++ show dHand
-
     printResult :: Result -> IO ()
     printResult result = putStrLn $ "Result : " ++ show result
 
@@ -55,15 +39,6 @@ playBlackjack = do
   dealer'sHand <- drawCardsByDealer
   player'sHand <- drawCardsByPlayer
   return (Player player'sHand, Dealer dealer'sHand)
-
-toScore :: Card -> Score
-toScore card =
-  if card `elem` [Jack, Queen, King]
-    then 10
-    else 1 + fromEnum card
-
-getScore :: Cards -> Score
-getScore = sum . map toScore
 
 drawCards :: Int -> StateT Cards IO Cards
 drawCards n = do
@@ -74,10 +49,10 @@ drawCards n = do
 drawCardsByDealer :: StateT Cards IO Cards
 drawCardsByDealer = do
   cards <- get
-  (numberOfCards, tookCards) <- takeCardsWhileSumValueIsNotLessThan17
+  (numberOfCards, drewCards) <- takeCardsWhileSumValueIsNotLessThan17
   put $ drop numberOfCards cards
-  lift $ putStrLn $ "dealer hands are " ++ show (head tookCards) ++ " and more"
-  return tookCards
+  lift $ putStrLn $ "Dealer's hand are " ++ show (head drewCards) ++ " and more."
+  return drewCards
   where
     takeCardsWhileSumValueIsNotLessThan17 :: StateT Cards IO (Int, Cards)
     takeCardsWhileSumValueIsNotLessThan17 = do
@@ -89,7 +64,7 @@ drawCardsByDealer = do
 drawCardsByPlayer :: StateT Cards IO Cards
 drawCardsByPlayer = do
   cards <- get
-  lift $ putStrLn $ "you got " ++ show (take 2 cards)
+  lift . putStrLn $ "you got " ++ show (take 2 cards)
   lift $ putStrLn "do you draw more? (y/n) : "
   yn <- lift $ yesOrNo <$> getLine
   if yn == Yes
@@ -100,8 +75,6 @@ drawCardsByPlayer = do
     yesOrNo s
       | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
       | s `elem` ["No", "no", "n", "N"] = No
-
-
 
 judge :: (Player, Dealer) -> Result
 judge (player, dealer)
