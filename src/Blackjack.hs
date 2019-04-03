@@ -1,5 +1,5 @@
 module Blackjack
-  ( blackjack
+  ( playBlackjack
   ) where
 
 import           Card
@@ -20,25 +20,25 @@ data Result
   | Lose
   deriving (Show)
 
-blackjack :: IO ()
-blackjack = do
+playBlackjack :: IO ()
+playBlackjack = do
   putStrLn ""
   shuffledDeck <- genShuffledDeck
-  (hands, _) <- runStateT playBlackjack shuffledDeck
+  (hands, _) <- runStateT getHands shuffledDeck
   printHands hands
   printResult $ judge hands
   where
     printHands :: (Player, Player) -> IO ()
     printHands (Player pHand, Dealer dHand) = do
-      putStrLn $ "Player's hand are " ++ show pHand
-      putStrLn $ "Dealer's hand are " ++ show dHand
+      putStrLn $ "Player's hand is " ++ show pHand
+      putStrLn $ "Dealer's hand is " ++ show dHand
     printResult :: Result -> IO ()
     printResult result = putStrLn $ "Result : " ++ show result
 
-playBlackjack :: StateT Cards IO (Player, Player)
-playBlackjack = do
-  dealer'sHand <- dealersTurn
-  player'sHand <- playersTurn
+getHands :: StateT Cards IO (Player, Player)
+getHands = do
+  dealer'sHand <- dealerTurn
+  player'sHand <- playerTurn
   return (Player player'sHand, Dealer dealer'sHand)
 
 drawCards :: Int -> StateT Cards IO Cards
@@ -50,34 +50,52 @@ drawCards n = do
 drawCard :: StateT Cards IO Cards
 drawCard = drawCards 1
 
-dealersTurn :: StateT Cards IO Cards
-dealersTurn = do
+dealerTurn :: StateT Cards IO Cards
+dealerTurn = do
   cards <- get
-  (numberOfCards, drewCards) <- drawCardsWhileScoreIsNotLessThan17
+  (numberOfCards, drewCards) <- drawCardsWhileScoreOver17
   put $ drop numberOfCards cards
-  lift . putStrLn $ "Dealer's hand are " ++ show [head drewCards] ++ " and more."
+  lift . putStrLn $ "Dealer hand is " ++ show [head drewCards] ++ " and ..."
   return drewCards
   where
-    drawCardsWhileScoreIsNotLessThan17 :: StateT Cards IO (Int, Cards)
-    drawCardsWhileScoreIsNotLessThan17 = do
+    drawCardsWhileScoreOver17 :: StateT Cards IO (Int, Cards)
+    drawCardsWhileScoreOver17 = do
       cards <- get
-      let index = length . takeWhile (<= Score 17) . scanl (<>) (Score 0) $ map toScore cards
-      put $ drop index cards
-      return (index, take index cards)
+      let over17Index = getOver17Index cards
+      put $ drop over17Index cards
+      return (over17Index, take over17Index cards)
+      where
+        getOver17Index = length . takeWhile (<= Score 17) . scanl (<>) (Score 0) . map toScore
 
-playersTurn :: StateT Cards IO Cards
-playersTurn = do
+    showDealerHand :: Cards -> StateT Cards IO ()
+    showDealerHand hand = showHand "Dealer" hand ((:[]) . head)
+
+playerTurn :: StateT Cards IO Cards
+playerTurn = do
   cards <- get
   let initialDrewCards = take 2 cards
-  showHand initialDrewCards
-  lift $ putStrLn "do you draw more? (y/n)"
+  showPlayerHand initialDrewCards
+  askDrawMore
   yn <- yesNoQuestion
   if yn == Yes
     then drawMore initialDrewCards
     else return initialDrewCards
   where
-    showHand :: Cards -> StateT Cards IO ()
-    showHand hand = lift . putStrLn $ "your hand is " ++ show hand
+    drawMore :: Cards -> StateT Cards IO Cards
+    drawMore nowHand = do
+      drewCards <- (nowHand ++) <$> drawCard
+      showPlayerHand drewCards
+      askDrawMore
+      yn <- yesNoQuestion
+      if yn == Yes
+        then drawMore drewCards
+        else return drewCards
+
+    askDrawMore :: StateT a IO ()
+    askDrawMore = lift $ putStrLn "Do you draw more? (y/n)"
+
+    showPlayerHand :: Cards -> StateT Cards IO ()
+    showPlayerHand hand = showHand "player" hand id
 
     yesNoQuestion :: StateT Cards IO YesOrNo
     yesNoQuestion = lift $ isYesOrNo <$> getLine
@@ -87,15 +105,9 @@ playersTurn = do
       | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
       | otherwise = No
 
-    drawMore :: Cards -> StateT Cards IO Cards
-    drawMore nowHand = do
-      drewCards <- (nowHand ++) <$> drawCard
-      showHand drewCards
-      lift $ putStrLn "do you draw more? (y/n)"
-      yn <- yesNoQuestion
-      if yn == Yes
-        then drawMore drewCards
-        else return drewCards
+
+showHand :: String -> Cards -> (Cards -> Cards) -> StateT Cards IO ()
+showHand who hand operateToCards = lift . putStrLn $ who ++ " hand is " ++ show (operateToCards hand)
 
 toScore :: Card -> Score
 toScore card =
