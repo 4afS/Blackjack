@@ -6,6 +6,7 @@ import           Card
 import           Control.Applicative
 import           Control.Monad.Random.Class (MonadRandom)
 import           Control.Monad.State
+import           Debug.Trace
 import           Player
 
 data YesOrNo
@@ -36,8 +37,8 @@ blackjack = do
 
 playBlackjack :: StateT Cards IO (Player, Player)
 playBlackjack = do
-  dealer'sHand <- drawCardsByDealer
-  player'sHand <- drawCardsByPlayer
+  dealer'sHand <- dealersTurn
+  player'sHand <- playersTurn
   return (Player player'sHand, Dealer dealer'sHand)
 
 drawCards :: Int -> StateT Cards IO Cards
@@ -46,44 +47,75 @@ drawCards n = do
   put $ drop n cards
   return $ take n cards
 
-drawCardsByDealer :: StateT Cards IO Cards
-drawCardsByDealer = do
+drawCard :: StateT Cards IO Cards
+drawCard = drawCards 1
+
+dealersTurn :: StateT Cards IO Cards
+dealersTurn = do
   cards <- get
-  (numberOfCards, drewCards) <- takeCardsWhileSumValueIsNotLessThan17
+  (numberOfCards, drewCards) <- drawCardsWhileScoreIsNotLessThan17
   put $ drop numberOfCards cards
-  lift $ putStrLn $ "Dealer's hand are " ++ show (head drewCards) ++ " and more."
+  lift . putStrLn $ "Dealer's hand are " ++ show [head drewCards] ++ " and more."
   return drewCards
   where
-    takeCardsWhileSumValueIsNotLessThan17 :: StateT Cards IO (Int, Cards)
-    takeCardsWhileSumValueIsNotLessThan17 = do
+    drawCardsWhileScoreIsNotLessThan17 :: StateT Cards IO (Int, Cards)
+    drawCardsWhileScoreIsNotLessThan17 = do
       cards <- get
-      let index = length . takeWhile (<= 17) . scanl (+) 0 $ map toScore cards
+      let index = length . takeWhile (<= Score 17) . scanl (<>) (Score 0) $ map toScore cards
       put $ drop index cards
       return (index, take index cards)
 
-drawCardsByPlayer :: StateT Cards IO Cards
-drawCardsByPlayer = do
+playersTurn :: StateT Cards IO Cards
+playersTurn = do
   cards <- get
-  lift . putStrLn $ "you got " ++ show (take 2 cards)
-  lift $ putStrLn "do you draw more? (y/n) : "
-  yn <- lift $ yesOrNo <$> getLine
+  let initialDrewCards = take 2 cards
+  showHand initialDrewCards
+  lift $ putStrLn "do you draw more? (y/n)"
+  yn <- yesNoQuestion
   if yn == Yes
-    then drawCards 3
-    else drawCards 2
+    then drawMore initialDrewCards
+    else return initialDrewCards
   where
-    yesOrNo :: String -> YesOrNo
-    yesOrNo s
+    showHand :: Cards -> StateT Cards IO ()
+    showHand hand = lift . putStrLn $ "your hand is " ++ show hand
+
+    yesNoQuestion :: StateT Cards IO YesOrNo
+    yesNoQuestion = lift $ isYesOrNo <$> getLine
+
+    isYesOrNo :: String -> YesOrNo
+    isYesOrNo s
       | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
-      | s `elem` ["No", "no", "n", "N"] = No
+      | otherwise = No
+
+    drawMore :: Cards -> StateT Cards IO Cards
+    drawMore nowHand = do
+      drewCards <- (nowHand ++) <$> drawCard
+      showHand drewCards
+      lift $ putStrLn "do you draw more? (y/n)"
+      yn <- yesNoQuestion
+      if yn == Yes
+        then drawMore drewCards
+        else return drewCards
+
+toScore :: Card -> Score
+toScore card =
+  if card `elem` [Jack, Queen, King]
+    then Score 10
+    else Score $ 1 + fromEnum card
+
+getTotalScore :: Player -> Score
+getTotalScore = foldl (<>) (Score 0) . map toScore . hand
 
 judge :: (Player, Dealer) -> Result
-judge (player, dealer)
-  | (playerHandsScore > 21) && (dealerHandsScore > 21) = Draw
-  | playerHandsScore > 21 = Lose
-  | dealerHandsScore > 21 = Win
-  | playerHandsScore > dealerHandsScore = Win
-  | playerHandsScore < dealerHandsScore = Lose
-  | otherwise = Draw
+judge (player, dealer) =
+  let player'sScore = getTotalScore player
+      dealer'sScore = getTotalScore dealer
+   in judge' player'sScore dealer'sScore
   where
-    playerHandsScore = getScore (hand player)
-    dealerHandsScore = getScore (hand dealer)
+    judge' Bust Bust = Draw
+    judge' (Score _) Bust = Win
+    judge' Bust (Score _) = Lose
+    judge' (Score pScore) (Score dScore)
+      | pScore == dScore = Draw
+      | pScore > dScore = Win
+      | pScore < dScore = Lose

@@ -29,17 +29,19 @@ data Suit
 
 type Cards = [Card]
 
-type Score = Int
+data Score
+  = Score Int
+  | Bust
+  deriving (Eq, Ord, Show)
+
+instance Semigroup Score where
+  Bust <> (Score _) = Bust
+  (Score _) <> Bust = Bust
+  (Score n) <> (Score m) =
+    if (n + m) > 21
+      then Bust
+      else Score (n + m)
 
 -- | Shuffled 52 cards excluding Joker.
 genShuffledDeck :: MonadRandom m => m Cards
 genShuffledDeck = shuffleM . concat $ replicate 4 [Ace .. King]
-
-toScore :: Card -> Score
-toScore card =
-  if card `elem` [Jack, Queen, King]
-    then 10
-    else 1 + fromEnum card
-
-getScore :: Cards -> Score
-getScore = sum . map toScore
