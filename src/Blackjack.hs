@@ -67,7 +67,6 @@ dealerTurn = do
       let dealerHandNumber = length dealerHand
       put $ drop dealerHandNumber cards
       return (dealerHandNumber, dealerHand)
-
     showDealerHand :: Cards -> StateT Cards IO ()
     showDealerHand hand = showHand "Dealer" hand (return . head)
 
@@ -75,8 +74,9 @@ drawUntilOver17 :: Cards -> Cards
 drawUntilOver17 = tail . drawUntilOver17' (Score 0)
   where
     drawUntilOver17' Bust _ = []
-    drawUntilOver17' (Score n) _ | n >= 17 = []
-    drawUntilOver17' score (card:cards) = card : drawUntilOver17' (score <> (toScore card)) cards
+    drawUntilOver17' (Score n) _
+      | n >= 17 = []
+    drawUntilOver17' score (card:cards) = card : drawUntilOver17' (score <> toScore card) cards
 
 playerTurn :: StateT Cards IO Cards
 playerTurn = do
@@ -98,21 +98,16 @@ playerTurn = do
       if yn == Yes
         then drawMore hand
         else return hand
-
     askDrawMore :: StateT a IO ()
     askDrawMore = lift $ putStrLn "Do you draw more? (y/n)"
-
     showPlayerHand :: Cards -> StateT Cards IO ()
     showPlayerHand hand = showHand "player" hand id
-
     askYesNo :: StateT Cards IO YesNo
     askYesNo = lift $ isYesOrNo <$> getLine
-
     isYesOrNo :: String -> YesNo
     isYesOrNo s
       | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
       | otherwise = No
-
 
 showHand :: String -> Cards -> (Cards -> Cards) -> StateT Cards IO ()
 showHand who hand operateToCards = lift . putStrLn $ who ++ " hand is " ++ show (operateToCards hand)
