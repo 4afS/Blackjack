@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Blackjack
   ( playBlackjack
   ) where
@@ -9,7 +11,7 @@ import           Control.Monad.State
 import           Debug.Trace
 import           Player
 
-data YesOrNo
+data YesNo
   = Yes
   | No
   deriving (Eq)
@@ -53,43 +55,49 @@ drawCard = drawCards 1
 dealerTurn :: StateT Cards IO Cards
 dealerTurn = do
   cards <- get
-  (numberOfCards, drewCards) <- drawCardsWhileScoreOver17
-  put $ drop numberOfCards cards
-  lift . putStrLn $ "Dealer hand is " ++ show [head drewCards] ++ " and ..."
-  return drewCards
+  (handNumber, hand) <- drawCardsUntilOver17
+  put $ drop handNumber cards
+  lift . putStrLn $ "Dealer hand is " ++ show [head hand] ++ " and ..."
+  return hand
   where
-    drawCardsWhileScoreOver17 :: StateT Cards IO (Int, Cards)
-    drawCardsWhileScoreOver17 = do
+    drawCardsUntilOver17 :: StateT Cards IO (Int, Cards)
+    drawCardsUntilOver17 = do
       cards <- get
-      let over17Index = getOver17Index cards
-      put $ drop over17Index cards
-      return (over17Index, take over17Index cards)
-      where
-        getOver17Index = length . takeWhile (<= Score 17) . scanl (<>) (Score 0) . map toScore
+      let dealerHand = drawUntilOver17 cards
+      let dealerHandNumber = length dealerHand
+      put $ drop dealerHandNumber cards
+      return (dealerHandNumber, dealerHand)
 
     showDealerHand :: Cards -> StateT Cards IO ()
-    showDealerHand hand = showHand "Dealer" hand ((:[]) . head)
+    showDealerHand hand = showHand "Dealer" hand (return . head)
+
+drawUntilOver17 :: Cards -> Cards
+drawUntilOver17 = tail . drawUntilOver17' (Score 0)
+  where
+    drawUntilOver17' Bust _ = []
+    drawUntilOver17' (Score n) _ | n >= 17 = []
+    drawUntilOver17' score (card:cards) = card : drawUntilOver17' (score <> (toScore card)) cards
 
 playerTurn :: StateT Cards IO Cards
 playerTurn = do
   cards <- get
-  let initialDrewCards = take 2 cards
-  showPlayerHand initialDrewCards
+  let initializedHand = take 2 cards
+  showPlayerHand initializedHand
   askDrawMore
-  yn <- yesNoQuestion
+  yn <- askYesNo
   if yn == Yes
-    then drawMore initialDrewCards
-    else return initialDrewCards
+    then drawMore initializedHand
+    else return initializedHand
   where
     drawMore :: Cards -> StateT Cards IO Cards
     drawMore nowHand = do
-      drewCards <- (nowHand ++) <$> drawCard
-      showPlayerHand drewCards
+      hand <- (nowHand ++) <$> drawCard
+      showPlayerHand hand
       askDrawMore
-      yn <- yesNoQuestion
+      yn <- askYesNo
       if yn == Yes
-        then drawMore drewCards
-        else return drewCards
+        then drawMore hand
+        else return hand
 
     askDrawMore :: StateT a IO ()
     askDrawMore = lift $ putStrLn "Do you draw more? (y/n)"
@@ -97,10 +105,10 @@ playerTurn = do
     showPlayerHand :: Cards -> StateT Cards IO ()
     showPlayerHand hand = showHand "player" hand id
 
-    yesNoQuestion :: StateT Cards IO YesOrNo
-    yesNoQuestion = lift $ isYesOrNo <$> getLine
+    askYesNo :: StateT Cards IO YesNo
+    askYesNo = lift $ isYesOrNo <$> getLine
 
-    isYesOrNo :: String -> YesOrNo
+    isYesOrNo :: String -> YesNo
     isYesOrNo s
       | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
       | otherwise = No
@@ -110,10 +118,9 @@ showHand :: String -> Cards -> (Cards -> Cards) -> StateT Cards IO ()
 showHand who hand operateToCards = lift . putStrLn $ who ++ " hand is " ++ show (operateToCards hand)
 
 toScore :: Card -> Score
-toScore card =
-  if card `elem` [Jack, Queen, King]
-    then Score 10
-    else Score $ 1 + fromEnum card
+toScore card
+  | card `elem` [Jack, Queen, King] = Score 10
+  | otherwise = Score $ 1 + fromEnum card
 
 getTotalScore :: Player -> Score
 getTotalScore = foldl (<>) (Score 0) . map toScore . hand

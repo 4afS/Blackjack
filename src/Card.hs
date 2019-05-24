@@ -37,11 +37,13 @@ data Score
 instance Semigroup Score where
   Bust <> (Score _) = Bust
   (Score _) <> Bust = Bust
-  (Score n) <> (Score m) =
-    if (n + m) > 21
-      then Bust
-      else Score (n + m)
+  (Score n) <> (Score m)
+    | n + m > 21 = Bust
+    | otherwise = Score (n + m)
 
 -- | Shuffled 52 cards excluding Joker.
 genShuffledDeck :: MonadRandom m => m Cards
-genShuffledDeck = shuffleM . concat $ replicate 4 [Ace .. King]
+genShuffledDeck = shuffleM cards
+  where
+    cards = concat $ replicate 4 [Ace .. King]
+
