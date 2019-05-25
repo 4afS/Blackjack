@@ -3,7 +3,7 @@ module Score
   , toScore
   ) where
 
-import           Card (Card (..))
+import           Card (Card, Rank (..))
 
 data Score
   = Score Int
@@ -18,6 +18,6 @@ instance Semigroup Score where
     | otherwise = Score (n + m)
 
 toScore :: Card -> Score
-toScore card
+toScore (_, card)
   | card `elem` [Jack, Queen, King] = Score 10
   | otherwise = Score $ 1 + fromEnum card

@@ -1,6 +1,9 @@
+{-# LANGUAGE TupleSections #-}
+
 module Card
-  ( Card(..)
+  ( Rank(..)
   , Suit(..)
+  , Card
   , Cards
   , Deck
   , genShuffledDeck
@@ -9,7 +12,7 @@ module Card
 import           Control.Monad.Random.Class (MonadRandom)
 import           System.Random.Shuffle      (shuffleM)
 
-data Card
+data Rank
   = Ace
   | Two
   | Three
@@ -32,6 +35,8 @@ data Suit
   | Heart
   deriving (Show, Enum)
 
+type Card = (Suit, Rank)
+
 type Cards = [Card]
 
 type Deck = [Card]
@@ -39,6 +44,12 @@ type Deck = [Card]
 -- | Shuffled 52 cards excluding Joker.
 genShuffledDeck :: MonadRandom m => m Deck
 genShuffledDeck = shuffleM deck
+
+deck :: Deck
+deck = spades ++ diamonds ++ clubs ++ hearts
   where
-    deck :: Deck
-    deck = concat $ replicate 4 [Ace .. King]
+    spades, diamonds, clubs, hearts :: Cards
+    spades = map (Spade, ) [Ace .. King]
+    diamonds = map (Diamond, ) [Ace .. King]
+    clubs = map (Club, ) [Ace .. King]
+    hearts = map (Heart, ) [Ace .. King]
