@@ -12,25 +12,6 @@ data Player = Player
   { getHand :: !Cards
   }
 
-data YesNo
-  = Yes
-  | No
-
-instance Show Player where
-  show (Player hand) = "Player : " ++ show hand
-
-instance Players Player where
-  getScore = foldl (<>) (Score 0) . map toScore . getHand
-  draw player@(Player hand)
-    | null hand = drawN player 2
-    | otherwise = drawN player 1
-
-drawN :: Monad m => Player -> Int -> StateT Deck m Player
-drawN (Player hand) n = do
-  deck <- get
-  put $ drop n deck
-  return $ Player $ take n deck ++ hand
-
 playPlayer :: StateT Deck IO Player
 playPlayer = do
   initializedPlayer <- draw (Player [])
@@ -40,7 +21,7 @@ playPlayer = do
   where
     nextOrEnd :: YesNo -> Player -> StateT Deck IO Player
     nextOrEnd Yes player
-      | getScore player > Score 21 = return player
+      | getScore player == Bust = return player
       | otherwise = drawMore player
     nextOrEnd No player = return player
     drawMore :: Player -> StateT Deck IO Player
@@ -49,6 +30,25 @@ playPlayer = do
       lift . print $ playerDrew
       yn <- lift askYesNo
       nextOrEnd yn playerDrew
+
+instance Players Player where
+  getScore = foldl1 (<>) . map toScore . getHand
+  draw player@(Player hand)
+    | null hand = drawN player 2
+    | otherwise = drawN player 1
+
+instance Show Player where
+  show (Player hand) = "Player : " ++ show hand
+
+drawN :: Monad m => Player -> Int -> StateT Deck m Player
+drawN (Player hand) n = do
+  deck <- get
+  put $ drop n deck
+  return $ Player $ take n deck ++ hand
+
+data YesNo
+  = Yes
+  | No
 
 askYesNo :: IO YesNo
 askYesNo = do

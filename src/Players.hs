@@ -1,8 +1,10 @@
-module Players (Players(..)) where
+module Players
+  ( Players(..)
+  ) where
 
 import           Card                (Cards, Deck)
 import           Control.Monad.State (StateT)
-import           Score (Score)
+import           Score               (Score)
 
 class Players a where
   getScore :: a -> Score

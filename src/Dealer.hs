@@ -3,10 +3,10 @@ module Dealer
   , playDealer
   ) where
 
-import           Card (Cards, Deck)
-import           Control.Monad.State (StateT, lift, get, put)
-import           Players (Players(..))
-import           Score (Score(..), toScore)
+import           Card                (Cards, Deck)
+import           Control.Monad.State (StateT, get, lift, put)
+import           Players             (Players (..))
+import           Score               (Score (..), best, toScore)
 
 data Dealer = Dealer
   { getHand :: !Cards
@@ -22,7 +22,7 @@ instance Show Dealer where
   show (Dealer hand) = "Dealer : " ++ show hand
 
 instance Players Dealer where
-  getScore = foldl (<>) (Score 0) . map toScore . getHand
+  getScore = foldl1 (<>) . map toScore . getHand
   draw _ = do
     deck <- get
     let hand = drawUntilOver17 deck
@@ -30,10 +30,12 @@ instance Players Dealer where
     return $ Dealer hand
 
 drawUntilOver17 :: Deck -> Cards
-drawUntilOver17 = drawUntilOver17' (Score 0)
+drawUntilOver17 = drawUntilOver17' mempty
   where
     drawUntilOver17' :: Score -> Deck -> Cards
     drawUntilOver17' Bust _ = []
-    drawUntilOver17' (Score n) _
-      | n >= 17 = []
-    drawUntilOver17' score (card:cards) = card : drawUntilOver17' (score <> toScore card) cards
+    drawUntilOver17' score (card:deck)
+      | isOver17 score = []
+      | otherwise = card : drawUntilOver17' (score <> toScore card) deck
+    isOver17 :: Score -> Bool
+    isOver17 score = best score >= Score [17]
