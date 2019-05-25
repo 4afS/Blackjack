@@ -31,19 +31,19 @@ drawN (Player hand) n = do
   put $ drop n deck
   return $ Player $ take n deck ++ hand
 
-playPlayer :: StateT Cards IO Player
+playPlayer :: StateT Deck IO Player
 playPlayer = do
   initializedPlayer <- draw (Player [])
   lift $ print initializedPlayer
   yn <- lift askYesNo
   nextOrEnd yn initializedPlayer
   where
-    nextOrEnd :: YesNo -> Player -> StateT Cards IO Player
+    nextOrEnd :: YesNo -> Player -> StateT Deck IO Player
     nextOrEnd Yes player
       | getScore player > Score 21 = return player
       | otherwise = drawMore player
     nextOrEnd No player = return player
-    drawMore :: Player -> StateT Cards IO Player
+    drawMore :: Player -> StateT Deck IO Player
     drawMore player = do
       playerDrew <- draw player
       lift . print $ playerDrew

@@ -12,7 +12,7 @@ data Dealer = Dealer
   { getHand :: !Cards
   }
 
-playDealer :: StateT Cards IO Dealer
+playDealer :: StateT Deck IO Dealer
 playDealer = do
   dealer <- draw (Dealer [])
   lift $ print dealer

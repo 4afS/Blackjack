@@ -2,7 +2,7 @@ module Blackjack
   ( playBlackjack
   ) where
 
-import           Card                (Cards, genShuffledDeck)
+import           Card                (Deck, genShuffledDeck)
 import           Control.Monad.State (StateT, evalStateT)
 import           Dealer              (Dealer, playDealer)
 import           Player              (Player, playPlayer)
@@ -23,7 +23,7 @@ playBlackjack = do
 lineBreak :: IO ()
 lineBreak = putStrLn ""
 
-play :: StateT Cards IO (Player, Dealer)
+play :: StateT Deck IO (Player, Dealer)
 play = do
   dealer <- playDealer
   player <- playPlayer
