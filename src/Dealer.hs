@@ -15,8 +15,11 @@ data Dealer = Dealer
 playDealer :: StateT Deck IO Dealer
 playDealer = do
   dealer <- draw (Dealer [])
-  lift $ print dealer
+  lift $ print $ only2Cards dealer
   return dealer
+
+only2Cards :: Dealer -> Dealer
+only2Cards (Dealer hand) = Dealer $ take 2 hand
 
 instance Show Dealer where
   show (Dealer hand) = "Dealer : " ++ show hand
