@@ -18,18 +18,19 @@ playPlayer = do
   lift $ print initializedPlayer
   yn <- lift askYesNo
   nextOrEnd yn initializedPlayer
-  where
-    nextOrEnd :: YesNo -> Player -> StateT Deck IO Player
-    nextOrEnd Yes player
-      | getScore player == Bust = return player
-      | otherwise = drawMore player
-    nextOrEnd No player = return player
-    drawMore :: Player -> StateT Deck IO Player
-    drawMore player = do
-      playerDrew <- draw player
-      lift . print $ playerDrew
-      yn <- lift askYesNo
-      nextOrEnd yn playerDrew
+
+nextOrEnd :: YesNo -> Player -> StateT Deck IO Player
+nextOrEnd Yes player
+  | getScore player == Bust = return player
+  | otherwise = drawMore player
+nextOrEnd No player = return player
+
+drawMore :: Player -> StateT Deck IO Player
+drawMore player = do
+  playerDrew <- draw player
+  lift . print $ playerDrew
+  yn <- lift askYesNo
+  nextOrEnd yn playerDrew
 
 instance Players Player where
   getScore = foldl1 (<>) . map toScore . getHand
@@ -53,9 +54,9 @@ data YesNo
 askYesNo :: IO YesNo
 askYesNo = do
   putStrLn "Do you draw more? (y/n)"
-  isYesOrNo <$> getLine
-  where
-    isYesOrNo :: String -> YesNo
-    isYesOrNo s
-      | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
-      | otherwise = No
+  whichYesOrNo <$> getLine
+
+whichYesOrNo :: String -> YesNo
+whichYesOrNo s
+  | s `elem` ["Yes", "YES", "yes", "Y", "y"] = Yes
+  | otherwise = No
