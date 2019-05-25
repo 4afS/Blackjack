@@ -28,7 +28,7 @@ dependencies:
 library:
   source-dirs: src
   exposed-modules:
-    - Player
+    - Players
     - Card
     - Blackjack
 

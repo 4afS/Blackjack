@@ -1,7 +1,12 @@
-module Card where
+module Card
+  ( Card(..)
+  , Suit(..)
+  , Cards
+  , Deck
+  , genShuffledDeck
+  ) where
 
 import           Control.Monad.Random.Class (MonadRandom)
-import           Control.Monad.State
 import           System.Random.Shuffle      (shuffleM)
 
 data Card
@@ -29,21 +34,11 @@ data Suit
 
 type Cards = [Card]
 
-data Score
-  = Score Int
-  | Bust
-  deriving (Eq, Ord, Show)
-
-instance Semigroup Score where
-  Bust <> (Score _) = Bust
-  (Score _) <> Bust = Bust
-  (Score n) <> (Score m)
-    | n + m > 21 = Bust
-    | otherwise = Score (n + m)
+type Deck = [Card]
 
 -- | Shuffled 52 cards excluding Joker.
-genShuffledDeck :: MonadRandom m => m Cards
-genShuffledDeck = shuffleM cards
+genShuffledDeck :: MonadRandom m => m Deck
+genShuffledDeck = shuffleM deck
   where
-    cards = concat $ replicate 4 [Ace .. King]
-
+    deck :: Deck
+    deck = concat $ replicate 4 [Ace .. King]
