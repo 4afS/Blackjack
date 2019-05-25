@@ -2,6 +2,7 @@ module Score
   ( Score(..)
   , toScore
   , best
+  , printScore
   ) where
 
 import           Card (Card, Rank (..))
@@ -12,14 +13,23 @@ data Score
   deriving (Eq, Ord, Show)
 
 toScore :: Card -> Score
+toScore (_, Ace) = Score [1, 11]
 toScore (_, card)
-  | card == Ace = Score [1, 11]
   | card `elem` [Jack, Queen, King] = Score [10]
   | otherwise = Score [1 + fromEnum card]
 
 best :: Score -> Score
 best Bust          = Bust
 best (Score score) = Score [maximum score]
+
+printScore :: Score -> IO ()
+printScore Bust = putStrLn "Score >> Bust"
+printScore score = putStrLn $ "Score >> " ++ show (getBestScoreValue score)
+  where
+    getBestScoreValue :: Score -> Int
+    getBestScoreValue = getValue . best
+    getValue :: Score -> Int
+    getValue (Score (value:_)) = value
 
 instance Monoid Score where
   mempty = Score [0]
