@@ -32,7 +32,13 @@ data Suit
   | Diamond
   | Club
   | Heart
-  deriving (Eq, Show, Enum)
+  deriving (Eq, Enum)
+
+instance Show Suit where
+  show Spade = "S"
+  show Diamond = "D"
+  show Club = "C"
+  show Heart = "H"
 
 data Card = Card
   { suit :: Suit
