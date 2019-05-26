@@ -1,12 +1,11 @@
-{-# LANGUAGE TupleSections #-}
-
 module Card
   ( Rank(..)
   , Suit(..)
-  , Card
+  , Card(..)
   , Cards
   , Deck
   , genShuffledDeck
+  , showCards
   ) where
 
 import           Control.Monad.Random.Class (MonadRandom)
@@ -33,9 +32,18 @@ data Suit
   | Diamond
   | Club
   | Heart
-  deriving (Show, Enum)
+  deriving (Eq, Show, Enum)
 
-type Card = (Suit, Rank)
+data Card = Card
+  { suit :: Suit
+  , rank :: Rank
+  }
+
+instance Show Card where
+  show (Card suit rank) = "<" ++ show suit ++ ", " ++ show rank ++ ">"
+
+showCards [card] = show card
+showCards (card:cards) = show card ++ ", " ++ showCards cards
 
 type Cards = [Card]
 
@@ -49,7 +57,7 @@ deck :: Deck
 deck = spades ++ diamonds ++ clubs ++ hearts
   where
     spades, diamonds, clubs, hearts :: Cards
-    spades = map (Spade, ) [Ace .. King]
-    diamonds = map (Diamond, ) [Ace .. King]
-    clubs = map (Club, ) [Ace .. King]
-    hearts = map (Heart, ) [Ace .. King]
+    spades = map (Card Spade) [Ace .. King]
+    diamonds = map (Card Diamond) [Ace .. King]
+    clubs = map (Card Club) [Ace .. King]
+    hearts = map (Card Heart) [Ace .. King]

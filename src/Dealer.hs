@@ -3,7 +3,7 @@ module Dealer
   , playDealer
   ) where
 
-import           Card                (Cards, Deck)
+import           Card                (Cards, Deck, showCards)
 import           Control.Monad.State (StateT, get, lift, put)
 import           Players             (Players (..))
 import           Score               (Score (..), best, toScore)
@@ -22,7 +22,7 @@ only2Cards :: Dealer -> Dealer
 only2Cards (Dealer hand) = Dealer $ take 2 hand
 
 instance Show Dealer where
-  show (Dealer hand) = "Dealer : " ++ show hand
+  show (Dealer hand) = "Dealer : " ++ showCards hand
 
 instance Players Dealer where
   getScore = foldl1 (<>) . map toScore . getHand

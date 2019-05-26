@@ -5,7 +5,7 @@ module Score
   , printScore
   ) where
 
-import           Card (Card, Rank (..))
+import           Card (Card (..), Rank (..))
 
 data Score
   = Score [Int]
@@ -13,8 +13,8 @@ data Score
   deriving (Eq, Ord, Show)
 
 toScore :: Card -> Score
-toScore (_, Ace) = Score [1, 11]
-toScore (_, card)
+toScore (Card _ Ace) = Score [1, 11]
+toScore (Card _ card)
   | card `elem` [Jack, Queen, King] = Score [10]
   | otherwise = Score [1 + fromEnum card]
 

@@ -3,7 +3,7 @@ module Player
   , playPlayer
   ) where
 
-import           Card                (Cards, Deck)
+import           Card                (Cards, Deck, showCards)
 import           Control.Monad.State (StateT, get, lift, put)
 import           Players             (Players (..))
 import           Score               (Score (..), toScore)
@@ -39,7 +39,7 @@ instance Players Player where
     | otherwise = drawN player 1
 
 instance Show Player where
-  show (Player hand) = "Player : " ++ show hand
+  show (Player hand) = "Player : " ++ showCards hand
 
 drawN :: Monad m => Player -> Int -> StateT Deck m Player
 drawN (Player hand) n = do
