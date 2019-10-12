@@ -48,6 +48,7 @@ data Card = Card
 instance Show Card where
   show (Card suit rank) = "<" ++ show suit ++ ", " ++ show rank ++ ">"
 
+showCards :: [Card] -> String
 showCards [card] = show card
 showCards (card:cards) = show card ++ ", " ++ showCards cards
 
